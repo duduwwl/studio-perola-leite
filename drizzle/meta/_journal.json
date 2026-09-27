@@ -1,0 +1,34 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1790356332039,
+      "tag": "0000_lame_quasimodo",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1790359174181,
+      "tag": "0001_heavy_ben_parker",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1790544600000,
+      "tag": "0002_service_booking_defaults",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1790547600000,
+      "tag": "0003_gel_service_photo",
+      "breakpoints": true
+    }
+  ]
+}
