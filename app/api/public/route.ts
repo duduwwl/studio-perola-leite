@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { availableSlots, cleanPhone, cleanText, database, dayValid, getServices, getSetting, isPast, jsonError, weekday, seedBusinessHours } from "@/lib/booking";
+import { availableSlots, calendarAvailability, cleanPhone, cleanText, database, dayValid, getServices, getSetting, isPast, jsonError, weekday, seedBusinessHours } from "@/lib/booking";
 import { reservationCalendar } from "@/lib/calendar";
 import { publicCors } from "@/lib/public-cors";
 
@@ -15,8 +15,8 @@ async function handleGet(request:NextRequest){
       const [year,number]=month.split("-").map(Number);
       if(number<1||number>12||year<2025||year>2100) return jsonError("Mês inválido.");
       const count=new Date(Date.UTC(year,number,0)).getUTCDate();
-      const days=await Promise.all(Array.from({length:count},async(_,i)=>{const day=`${month}-${String(i+1).padStart(2,"0")}`;const slots=await availableSlots(db,day,service);return slots.length?day:null}));
-      return Response.json({days:days.filter(Boolean)});
+      const availability=await calendarAvailability(db,`${month}-01`,`${month}-${String(count).padStart(2,"0")}`,service);
+      return Response.json({days:availability.days});
     }
     if(action==="slots"){
       const day=request.nextUrl.searchParams.get("day")??"";

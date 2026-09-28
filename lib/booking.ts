@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { calculateSlots } from "./availability";
 
 export type Service = { id:string; name:string; description:string|null; price_cents:number|null; duration_minutes:number|null; image:string|null; notes:string|null; active:number; sort_order:number; price_is_demo?:boolean };
 export type Hour = { weekday:number; open_minute:number; close_minute:number; break_start:number|null; break_end:number|null; enabled:number };
@@ -47,29 +48,37 @@ export async function getSetting(db:D1Database,key:string, fallback:string) {
   const row=await db.prepare("SELECT value FROM settings WHERE key = ?").bind(key).first<{value:string}>();
   return row?.value ?? fallback;
 }
-export async function availableSlots(db:D1Database, day:string, serviceId:string, excludeId=""):Promise<Slot[]> {
-  if (!dayValid(day)) return [];
-  const service=await db.prepare("SELECT * FROM services WHERE id = ? AND active = 1").bind(serviceId).first<Service>();
-  if (!service?.duration_minutes || service.duration_minutes<15) return [];
-  const hours=await db.prepare("SELECT * FROM business_hours WHERE weekday = ? AND enabled = 1").bind(weekday(day)).first<Hour>();
-  if (!hours) return [];
-  const buffer=Math.max(0,Math.min(120,Number(await getSetting(db,"buffer_minutes","0"))||0));
-  const step=Math.max(15,Math.min(120,Number(await getSetting(db,"slot_step_minutes","30"))||30));
-  const now=studioNow();
-  const appointments=(await db.prepare("SELECT start_minute,end_minute FROM appointments WHERE day = ? AND id != ? AND status NOT IN ('cancelled','no_show')").bind(day,excludeId).all<{start_minute:number;end_minute:number}>()).results;
-  const blocks=(await db.prepare("SELECT start_minute,end_minute FROM blocked_times WHERE day = ?").bind(day).all<{start_minute:number;end_minute:number}>()).results;
-  const slots:Slot[]=[];
-  for(let minute=hours.open_minute;minute+service.duration_minutes<=hours.close_minute;minute+=step){
-    const end=minute+service.duration_minutes;
-    if(day<now.day || (day===now.day && minute<=now.minute)) continue;
-    if(hours.break_start!==null&&hours.break_end!==null&&minute<hours.break_end&&end>hours.break_start) continue;
-    if(blocks.some(b=>minute<b.end_minute&&end>b.start_minute)) continue;
-    if(appointments.some(a=>minute<a.end_minute+buffer&&end+buffer>a.start_minute)) continue;
-    slots.push({minute,label:toLabel(minute)});
+export async function calendarAvailability(db:D1Database, startDay:string, endDay:string, serviceId:string, excludeId="") {
+  // Five SELECTs in one D1 batch, regardless of the number of days requested.
+  const rows=await db.batch([
+    db.prepare("SELECT * FROM services WHERE id = ? AND active = 1").bind(serviceId),
+    db.prepare("SELECT * FROM business_hours WHERE enabled = 1"),
+    db.prepare("SELECT key,value FROM settings WHERE key IN ('buffer_minutes','slot_step_minutes')"),
+    db.prepare("SELECT day,start_minute,end_minute FROM appointments WHERE day BETWEEN ? AND ? AND id != ? AND status NOT IN ('cancelled','no_show')").bind(startDay,endDay,excludeId),
+    db.prepare("SELECT day,start_minute,end_minute FROM blocked_times WHERE day BETWEEN ? AND ?").bind(startDay,endDay),
+  ]);
+  const service=rows[0].results[0] as Service|undefined;
+  const hours=rows[1].results as unknown as Hour[];
+  const settings=Object.fromEntries((rows[2].results as {key:string;value:string}[]).map(row=>[row.key,row.value]));
+  const buffer=Math.max(0,Math.min(120,Number(settings.buffer_minutes)||0));
+  const step=Math.max(15,Math.min(120,Number(settings.slot_step_minutes)||30));
+  type Range={day:string;start_minute:number;end_minute:number};
+  const group=(ranges:Range[])=>{const map=new Map<string,Range[]>();for(const range of ranges){const list=map.get(range.day)??[];list.push(range);map.set(range.day,list)}return map};
+  const appointments=group(rows[3].results as unknown as Range[]),blocks=group(rows[4].results as unknown as Range[]);
+  const now=studioNow(), slotsByDay:Record<string,Slot[]>={};
+  if(service?.duration_minutes && dayValid(startDay) && dayValid(endDay)){
+    for(let date=new Date(`${startDay}T12:00:00Z`);date.toISOString().slice(0,10)<=endDay;date.setUTCDate(date.getUTCDate()+1)){
+      const day=date.toISOString().slice(0,10);
+      const slots=calculateSlots(day,service.duration_minutes,hours.find(h=>h.weekday===weekday(day)),appointments.get(day)??[],blocks.get(day)??[],buffer,step,now);
+      if(slots.length)slotsByDay[day]=slots;
+    }
   }
-  return slots;
+  return {service,slotsByDay,days:Object.keys(slotsByDay)};
 }
-
+export async function availableSlots(db:D1Database, day:string, serviceId:string, excludeId=""):Promise<Slot[]> {
+  if(!dayValid(day))return [];
+  return (await calendarAvailability(db,day,day,serviceId,excludeId)).slotsByDay[day]??[];
+}
 export const cleanText=(value:unknown,max=200)=>typeof value==="string"?value.trim().replace(/[\u0000-\u001f<>]/g,"").slice(0,max):"";
 export const cleanPhone=(value:unknown)=>typeof value==="string"?value.replace(/\D/g,"").slice(0,15):"";
 export function jsonError(message:string,status=400){return Response.json({error:message},{status});}
