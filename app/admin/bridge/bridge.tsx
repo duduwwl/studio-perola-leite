@@ -1,12 +1,12 @@
 "use client";
 import { useEffect, useState } from "react";
 const pagesOrigin="https://duduwwl.github.io";
-export default function Bridge({authorized,email}:{authorized:boolean;email:string}){
+export default function Bridge({authorized,email,anonymous}:{authorized:boolean;email:string;anonymous:boolean}){
   const [connected,setConnected]=useState(false);
   useEffect(()=>{
-    const opener=window.opener;
+    const opener=window.opener??(window.parent!==window?window.parent:null);
     if(!opener)return;
-    const announce=()=>opener.postMessage({channel:"perola-admin",type:authorized?"ready":"denied",email},pagesOrigin);
+    const announce=()=>opener.postMessage({channel:"perola-admin",type:authorized?"ready":anonymous?"login-required":"denied",email},pagesOrigin);
     const listener=async(event:MessageEvent)=>{
       if(!authorized||event.origin!==pagesOrigin||event.source!==opener||event.data?.channel!=="perola-admin"||event.data.type!=="request")return;
       const {id,path,method,body}=event.data;
@@ -20,6 +20,6 @@ export default function Bridge({authorized,email}:{authorized:boolean;email:stri
     };
     window.addEventListener("message",listener);announce();
     return()=>window.removeEventListener("message",listener);
-  },[authorized,email]);
+  },[authorized,email,anonymous]);
   return <main className="admin-gate"><h1>{authorized?"Conta conectada":"Acesso restrito"}</h1><p>{authorized?"Volte à aba do painel para gerenciar a agenda. Mantenha esta janela aberta durante o uso.":"Entre com a conta administradora autorizada."}</p>{connected&&<p role="status">Conexão com o painel ativa.</p>}<a className="button-main" href="/admin">Abrir administração aqui</a></main>;
 }

@@ -12,7 +12,7 @@ O agendamento funciona diretamente no GitHub Pages: serviço, calendário de dat
 
 ## Administração
 
-O painel do Pages oferece visão geral, agenda por dia/semana/mês, serviços, clientes, histórico, alterações de reservas, bloqueios e configurações. O botão Entrar com ChatGPT abre a autenticação da plataforma em uma janela separada. Mantenha essa janela aberta enquanto usa o painel: ela realiza as consultas administrativas no mesmo domínio da sessão autenticada e entrega as respostas exclusivamente à janela do painel em https://duduwwl.github.io. Não são criados nem expostos tokens, senhas ou chaves no Pages.
+O painel do Pages oferece visão geral, agenda por dia/semana/mês, serviços, clientes, histórico, alterações de reservas, bloqueios e configurações. O painel reconecta automaticamente uma sessão autorizada quando o navegador permite. O botão Entrar com ChatGPT abre a autenticação da plataforma em uma janela separada. Mantenha essa janela aberta enquanto usa o painel: ela realiza as consultas administrativas no mesmo domínio da sessão autenticada e entrega as respostas exclusivamente à janela do painel em https://duduwwl.github.io. Não são criados nem expostos tokens, senhas ou chaves no Pages.
 
 Cada consulta e alteração administrativa exige identidade ChatGPT e o e-mail autorizado em ADMIN_EMAIL no servidor. Os dados privados não são incluídos em HTML, arquivos estáticos, pacotes ou repositório. A agenda para clientes e sua disponibilidade são públicas; a administração continua restrita.
 
@@ -45,3 +45,4 @@ Node.js 22+, dependências do lockfile e starter Vinext/Sites.
 A compilação das páginas reutiliza os componentes de reserva e administração do site. Os links respeitam o prefixo /studio-perola-leite/. O acesso público da agenda é necessário para a API de reservas anônimas. A conta administradora é definida em ADMIN_EMAIL no ambiente de produção.
 
 Sem cobranças ou envio automático de mensagens. As integrações de calendário exportam eventos, sem sincronização de agendas externas. Credenciais, ambiente local, banco e dependências não devem ser publicados.
+

@@ -8,7 +8,7 @@ let adminReady = false;
 let adminListenerInstalled = false;
 const pending = new Map<string, {resolve: (response: Response) => void; reject: (error: Error) => void; timer: ReturnType<typeof setTimeout>}>();
 
-export function connectAdmin(onReady: (email: string) => void, onError: (message: string) => void) {
+export function connectAdmin(onReady: (email: string) => void, onError: (message: string) => void, embedded = false) {
   adminReady = false;
   if (!adminListenerInstalled) {
     window.addEventListener("message", event => {
@@ -29,6 +29,13 @@ export function connectAdmin(onReady: (email: string) => void, onError: (message
     if (event.data.type === "denied") {onError("Esta conta não está autorizada a administrar o Studio."); window.removeEventListener("message", listener)}
   };
   window.addEventListener("message", listener);
+  if (embedded) {
+    const frame=document.createElement("iframe");
+    frame.hidden=true;frame.title="Conexão protegida da administração";
+    frame.src=`${apiOrigin}/admin/bridge?embed=1`;
+    document.body.appendChild(frame);adminWindow=frame.contentWindow;
+    return ()=>{window.removeEventListener("message",listener);frame.remove()};
+  }
   adminWindow = window.open(`${apiOrigin}/admin/bridge`, "perola-admin", "popup,width=560,height=680");
   if (!adminWindow) {window.removeEventListener("message", listener); onError("Permita a janela de login para entrar na administração.")}
   return () => window.removeEventListener("message", listener);
