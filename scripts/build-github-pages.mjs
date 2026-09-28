@@ -18,7 +18,7 @@ fs.writeFileSync(path.join(output,"assets/site.css"),css+"\n.pages-gallery-dialo
 html=html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,"").replace(/<link\b[^>]*>/gi,tag=>/rel="stylesheet"/.test(tag)?'<link rel="stylesheet" href="./assets/site.css">':/rel="(?:modulepreload|preload)"/.test(tag)?"":tag);
 html=html.replace(/(?:src|href)="\/_next\/image\?([^"\s]+)"/g,(_,query)=>`src=".${new URLSearchParams(query.replaceAll("&amp;","&")).get("url")}"`);
 html=html.replace(/\s+srcset="[^"]*"/gi,"");
-html=html.replace(/href="\/agendar([^"\s]*)"/g,`href="${studio}/agendar$1"`).replace(/href="\/admin"/g,`href="${studio}/admin"`).replace(/href="\/"/g,'href="./"').replace(/href="\/favicon.svg"/g,'href="./favicon.svg"');
+html=html.replace(/href="\/agendar([^"\s]*)"/g,'href="./agendar/$1"').replace(/href="\/admin"/g,'href="./admin/"').replace(/href="\/"/g,'href="./"').replace(/href="\/favicon.svg"/g,'href="./favicon.svg"');
 html=html.replace(/src="\/images\//g,'src="./images/');
 html=html.replace("</body>",'<dialog class="pages-gallery-dialog" aria-labelledby="gallery-title"><button type="button" data-close>Fechar</button><h2 id="gallery-title"></h2><img alt=""></dialog><script src="./assets/site.js" defer></script></body>');
 fs.writeFileSync(path.join(output,"index.html"),html);
@@ -26,7 +26,6 @@ fs.cpSync(path.join(root,"public/images"),path.join(output,"images"),{recursive:
 fs.copyFileSync(path.join(root,"public/favicon.svg"),path.join(output,"favicon.svg"));
 fs.writeFileSync(path.join(output,".nojekyll"),"");
 fs.writeFileSync(path.join(output,"assets/site.js"),`const dialog=document.querySelector('.pages-gallery-dialog');document.querySelectorAll('.gallery-photo').forEach(button=>button.addEventListener('click',()=>{const photo=button.querySelector('img');dialog.querySelector('img').src=photo.src;dialog.querySelector('img').alt=photo.alt;dialog.querySelector('h2').textContent=photo.alt;dialog.showModal()}));dialog.querySelector('[data-close]').addEventListener('click',()=>dialog.close());dialog.addEventListener('click',event=>{if(event.target===dialog)dialog.close()});document.querySelectorAll('.mobile-menu a').forEach(link=>link.addEventListener('click',()=>link.closest('details').removeAttribute('open')));if(!matchMedia('(prefers-reduced-motion: reduce)').matches&&'IntersectionObserver' in window){const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add('in-view');observer.unobserve(entry.target)}}),{threshold:.08});document.querySelectorAll('[data-reveal]').forEach(element=>{if(element.getBoundingClientRect().top<innerHeight*.9)element.classList.add('in-view');observer.observe(element)});document.documentElement.classList.add('motion-ready')}`);
-fs.mkdirSync(path.join(output,"agendar"),{recursive:true});
-fs.writeFileSync(path.join(output,"agendar/index.html"),`<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Agendar | Studio Pérola Leite</title><body><p><a href="${studio}/agendar">Abrir a agenda do Studio Pérola Leite</a></p><script>location.replace(${JSON.stringify(studio+"/agendar")}+location.search)</script></body></html>`);
 if(/\/_next\/(image|static)|\/api\//.test(html))throw new Error("Static page contains a server-only resource");
-console.log("GitHub Pages generated in docs/: homepage, gallery, local images and booking links.");
+console.log("GitHub Pages generated in docs/: homepage, gallery, local images and internal page links.");
+

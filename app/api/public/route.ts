@@ -1,9 +1,10 @@
 import { NextRequest } from "next/server";
 import { availableSlots, cleanPhone, cleanText, database, dayValid, getServices, getSetting, isPast, jsonError, weekday, seedBusinessHours } from "@/lib/booking";
 import { reservationCalendar } from "@/lib/calendar";
+import { publicCors } from "@/lib/public-cors";
 
 export const dynamic="force-dynamic";
-export async function GET(request:NextRequest){
+async function handleGet(request:NextRequest){
   try{
     const db=database();
     await seedBusinessHours(db);
@@ -29,7 +30,7 @@ export async function GET(request:NextRequest){
   }catch(error){console.error("public GET",error);return jsonError("Não foi possível carregar a agenda agora. Tente novamente.",503)}
 }
 
-export async function POST(request:NextRequest){
+async function handlePost(request:NextRequest){
   try{
     const payload=await request.json() as Record<string,unknown>;
     const day=cleanText(payload.day,10), serviceId=cleanText(payload.serviceId,80), name=cleanText(payload.name,100), phone=cleanPhone(payload.phone), email=cleanText(payload.email,160), notes=cleanText(payload.notes,500);
@@ -63,3 +64,7 @@ export async function POST(request:NextRequest){
     return Response.json({id,status:"confirmed",calendar},{status:201,headers:{"Cache-Control":"no-store"}});
   }catch(error){console.error("public POST",error);return jsonError("Não foi possível confirmar o agendamento. Tente novamente.",503)}
 }
+
+export const GET=(request:NextRequest)=>publicCors(request,()=>handleGet(request));
+export const POST=(request:NextRequest)=>publicCors(request,()=>handlePost(request));
+export const OPTIONS=(request:NextRequest)=>publicCors(request,async()=>new Response(null,{status:204}));

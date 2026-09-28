@@ -1,10 +1,11 @@
 import { NextRequest } from "next/server";
 import { availableSlots, database, dayValid, getServices, jsonError } from "@/lib/booking";
 import { calendarInstant, calendarTimezone } from "@/lib/calendar";
+import { publicCors } from "@/lib/public-cors";
 
 export const dynamic="force-dynamic";
 // Public availability only. Booked events and client details stay private.
-export async function GET(request:NextRequest){
+async function handleGet(request:NextRequest){
   try{
     const db=database(),params=request.nextUrl.searchParams;
     const serviceId=params.get("service")??"";
@@ -29,3 +30,5 @@ export async function GET(request:NextRequest){
     return Response.json({...common,month,days:dates.filter(Boolean)},{headers});
   }catch(error){console.error("calendar GET",error);return jsonError("Não foi possível consultar o calendário. Tente novamente.",503)}
 }
+export const GET=(request:NextRequest)=>publicCors(request,()=>handleGet(request));
+export const OPTIONS=(request:NextRequest)=>publicCors(request,async()=>new Response(null,{status:204}));

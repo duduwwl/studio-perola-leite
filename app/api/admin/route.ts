@@ -36,6 +36,8 @@ export async function GET(request:NextRequest){
 }
 
 export async function POST(request:NextRequest){
+  const origin=request.headers.get("origin");
+  if(origin&&origin!==request.nextUrl.origin)return jsonError("Origem não autorizada.",403);
   if(!await isAdmin()) return jsonError("Acesso restrito à administração.",403);
   try{
     const data=await request.json() as Record<string,unknown>;
